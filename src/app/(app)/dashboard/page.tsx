@@ -148,15 +148,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-foreground">Atividade Recente</CardTitle>
-          <CardDescription className="text-muted-foreground">Visão geral dos eventos recentes do sistema.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Nenhuma atividade recente para exibir. (Funcionalidade pendente)</p>
-        </CardContent>
-      </Card>
     </div>
   );
 }
+
