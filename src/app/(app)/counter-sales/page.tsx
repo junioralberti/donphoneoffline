@@ -214,7 +214,7 @@ export default function CounterSalesPage() {
       businessPhone: "Seu Telefone",
       businessEmail: "Seu Email",
     };
-    const fixedLogoUrl = "/donphone-login-visual.png"; 
+    const fixedLogoUrl = "/logoimpressao.png"; 
 
     const printWindow = window.open('', '_blank', 'height=700,width=800');
     if (printWindow) {

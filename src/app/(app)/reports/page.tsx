@@ -158,7 +158,7 @@ export default function ReportsPage() {
         businessPhone: "Seu Telefone",
         businessEmail: "Seu Email",
     };
-    const fixedLogoUrl = "/logoprincipal.png";
+    const fixedLogoUrl = "/logoimpressao.png";
 
     const printWindow = window.open('', '_blank', 'height=700,width=800');
     if (printWindow) {
