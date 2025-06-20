@@ -13,10 +13,12 @@ import {
   doc,
   updateDoc
 } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
-import type { Sale, SaleInput, SaleStatus, PaymentMethod, CartItemInput } from '@/lib/schemas/sale';
+import { db } from '@/lib/firebase';
+import type { Sale, SaleInput } from '@/lib/schemas/sale';
+import { generateNextSaleNumber } from './counterService';
 
-export type { PaymentMethod, CartItemInput, SaleInput, Sale, SaleStatus };
+// Re-exporting types from schema file for external use
+export type { PaymentMethod, CartItemInput, SaleInput, Sale, SaleStatus } from '@/lib/schemas/sale';
 
 const SALES_COLLECTION = 'sales';
 
@@ -24,6 +26,7 @@ const saleFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData>): Sale => {
   const data = docSnap.data();
   return {
     id: docSnap.id,
+    saleNumber: data.saleNumber || 0,
     clientName: data.clientName || null,
     items: data.items || [],
     paymentMethod: data.paymentMethod || null,
@@ -35,17 +38,20 @@ const saleFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData>): Sale => {
   };
 };
 
-export const addSale = async (saleData: SaleInput): Promise<string> => {
+export const addSale = async (saleData: Omit<SaleInput, 'saleNumber'>): Promise<{saleId: string, saleNumber: number}> => {
   // const user = auth.currentUser;
   // if (!user) throw new Error("Usuário não autenticado.");
 
+  const saleNumber = await generateNextSaleNumber();
+
   const docRef = await addDoc(collection(db, SALES_COLLECTION), {
     ...saleData,
+    saleNumber: saleNumber,
     status: "Concluída",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(), // Add updatedAt for consistency
   });
-  return docRef.id; 
+  return { saleId: docRef.id, saleNumber }; 
 };
 
 export const getSales = async (): Promise<Sale[]> => {
@@ -54,7 +60,7 @@ export const getSales = async (): Promise<Sale[]> => {
 
   const q = query(
     collection(db, SALES_COLLECTION),
-    orderBy('createdAt', 'desc')
+    orderBy('saleNumber', 'desc')
   );
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(saleFromDoc);

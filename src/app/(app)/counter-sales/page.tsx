@@ -73,21 +73,23 @@ export default function CounterSalesPage() {
 
   const addSaleMutation = useMutation({
     mutationFn: addSale,
-    onSuccess: (saleId) => {
+    onSuccess: ({ saleId, saleNumber }) => {
       queryClient.invalidateQueries({ queryKey: ["sales"] }); 
       toast({ 
         title: "Venda Concluída!", 
-        description: `Venda registrada com sucesso. Cliente: ${clientNameForSale || "Não informado"}. Pagamento: ${paymentMethod}. Total: R$ ${calculateTotal().toFixed(2)}`
+        description: `Venda Nº ${saleNumber} registrada com sucesso. Cliente: ${clientNameForSale || "Não informado"}.`
       });
       
-      const saleDataForPrint: SaleInput & { saleId: string; date: string; status: SaleStatus } = {
-        saleId, 
+      const saleDataForPrint: Sale & { date: string } = {
+        id: saleId,
+        saleNumber,
         date: new Date().toLocaleString('pt-BR'),
         clientName: clientNameForSale || null,
         items: cartItems.map(({id, sku, ...item}) => item), 
         paymentMethod: paymentMethod || null,
         totalAmount: calculateTotal(),
         status: "Concluída",
+        createdAt: new Date(),
       };
       handlePrintSaleReceipt(saleDataForPrint);
       resetSaleForm();
@@ -198,8 +200,9 @@ export default function CounterSalesPage() {
   };
 
   const handlePrintSaleReceipt = (saleData: {
-    saleId: string;
-    date: string;
+    id: string;
+    saleNumber?: number;
+    createdAt: Date | any;
     clientName?: string | null;
     items: CartItemInput[]; 
     paymentMethod?: PaymentMethod | null;
@@ -215,6 +218,10 @@ export default function CounterSalesPage() {
       businessEmail: "Seu Email",
     };
     const fixedLogoUrl = "/logoimpressao.png"; 
+
+    const dateFormatted = saleData.createdAt instanceof Date 
+      ? format(saleData.createdAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) 
+      : (saleData.createdAt ? new Date((saleData.createdAt as any).seconds * 1000).toLocaleString('pt-BR') : 'N/A');
 
     const printWindow = window.open('', '_blank', 'height=700,width=800');
     if (printWindow) {
@@ -265,8 +272,8 @@ export default function CounterSalesPage() {
         }
       }
       printWindow.document.write('<div class="details-grid">');
-      printWindow.document.write(`<div><strong>Nº Venda:</strong> ${saleData.saleId}</div>`);
-      printWindow.document.write(`<div><strong>Data:</strong> ${saleData.date}</div>`);
+      printWindow.document.write(`<div><strong>Nº Venda:</strong> ${saleData.saleNumber || 'PREVIEW'}</div>`);
+      printWindow.document.write(`<div><strong>Data:</strong> ${dateFormatted}</div>`);
       if (saleData.clientName) {
         printWindow.document.write(`<div><strong>Cliente:</strong> ${saleData.clientName}</div>`);
       }
@@ -313,7 +320,7 @@ export default function CounterSalesPage() {
       return;
     }
 
-    const saleToSave: SaleInput = {
+    const saleToSave: Omit<SaleInput, 'saleNumber'> = {
       clientName: clientNameForSale || null,
       items: cartItems.map(({ id, sku, ...item }) => item), 
       paymentMethod: paymentMethod || null,
@@ -515,8 +522,9 @@ export default function CounterSalesPage() {
         </CardContent>
         <CardFooter className="border-t pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
             <Button variant="outline" onClick={() => handlePrintSaleReceipt({
-                saleId: `PREVIEW-${Date.now().toString().slice(-6)}`,
-                date: new Date().toLocaleString('pt-BR'),
+                id: `PREVIEW-${Date.now().toString().slice(-6)}`,
+                saleNumber: 0, // Indicate it's a preview
+                createdAt: new Date(),
                 clientName: clientNameForSale,
                 items: cartItems.map(({id, sku, ...item}) => item),
                 paymentMethod,
@@ -569,6 +577,7 @@ export default function CounterSalesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Nº Venda</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead className="text-right">Valor (R$)</TableHead>
@@ -579,6 +588,7 @@ export default function CounterSalesPage() {
                 <TableBody>
                   {salesHistory.map((sale) => (
                     <TableRow key={sale.id} className={sale.status === "Cancelada" ? "opacity-60" : ""}>
+                      <TableCell className="font-medium">{sale.saleNumber}</TableCell>
                       <TableCell className="text-sm">
                         {sale.createdAt instanceof Date 
                           ? format(sale.createdAt, "dd/MM/yyyy HH:mm", { locale: ptBR }) 
@@ -603,16 +613,7 @@ export default function CounterSalesPage() {
                             variant="outline" 
                             size="icon" 
                             className="h-8 w-8"
-                            onClick={() => handlePrintSaleReceipt({
-                                saleId: sale.id,
-                                date: sale.createdAt instanceof Date ? format(sale.createdAt, "dd/MM/yyyy HH:mm", { locale: ptBR }) : new Date((sale.createdAt as any).seconds * 1000).toLocaleString('pt-BR'),
-                                clientName: sale.clientName,
-                                items: sale.items,
-                                paymentMethod: sale.paymentMethod,
-                                totalAmount: sale.totalAmount,
-                                status: sale.status,
-                                cancellationReason: sale.cancellationReason,
-                            })}
+                            onClick={() => handlePrintSaleReceipt(sale)}
                             title="Imprimir Comprovante"
                         >
                             <Printer className="h-4 w-4" />
@@ -706,3 +707,4 @@ export default function CounterSalesPage() {
     
 
     
+
