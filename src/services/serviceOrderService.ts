@@ -16,6 +16,7 @@ import {
   getCountFromServer
 } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
+import { generateNextOsNumber } from './counterService';
 
 export type ServiceOrderStatus = "Aberta" | "Em andamento" | "Aguardando peça" | "Concluída" | "Entregue" | "Cancelada";
 export type DeviceType = "Celular" | "Notebook" | "Tablet" | "Placa" | "Outro";
@@ -53,7 +54,7 @@ export interface ServiceOrderInput {
 
 export interface ServiceOrder extends ServiceOrderInput {
   id: string; // Firestore ID
-  osNumber: string;
+  osNumber: number;
   openingDate: Date | Timestamp;
   updatedAt?: Date | Timestamp;
   // userId removed
@@ -65,7 +66,7 @@ const serviceOrderFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData>): Serv
   const data = docSnap.data();
   return {
     id: docSnap.id,
-    osNumber: data.osNumber || `OS-${docSnap.id.substring(0,6).toUpperCase()}`,
+    osNumber: data.osNumber || 0,
     deliveryForecastDate: data.deliveryForecastDate || null,
     status: data.status || "Aberta",
     responsibleTechnicianName: data.responsibleTechnicianName || null,
@@ -92,20 +93,11 @@ const serviceOrderFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData>): Serv
   };
 };
 
-const generateOsNumber = async (): Promise<string> => {
-    const now = new Date();
-    const year = now.getFullYear().toString().slice(-2);
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const sequence = Date.now().toString().slice(-6); 
-    return `OS-${year}${month}-${sequence}`;
-};
-
-
-export const addServiceOrder = async (orderData: ServiceOrderInput): Promise<string> => {
+export const addServiceOrder = async (orderData: ServiceOrderInput): Promise<number> => {
   const currentUser = auth.currentUser;
   if (!currentUser) throw new Error("Usuário não autenticado.");
 
-  const osNumber = await generateOsNumber();
+  const osNumber = await generateNextOsNumber();
   const docRef = await addDoc(collection(db, SERVICE_ORDERS_COLLECTION), {
     ...orderData,
     // userId: currentUser.uid, // userId removed
@@ -123,7 +115,7 @@ export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
   const q = query(
     collection(db, SERVICE_ORDERS_COLLECTION),
     // where('userId', '==', currentUser.uid), // userId removed
-    orderBy('openingDate', 'desc')
+    orderBy('osNumber', 'desc')
   );
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(serviceOrderFromDoc);
@@ -151,7 +143,7 @@ export const getServiceOrdersByDateRangeAndStatus = async (
   const currentUser = auth.currentUser;
   if (!currentUser) return [];
 
-  let conditions = [
+  let conditions: any[] = [
     // where('userId', '==', currentUser.uid) // userId removed
   ];
   if (startDate) {
@@ -204,4 +196,3 @@ export const getTotalCompletedServiceOrdersRevenue = async (): Promise<number> =
   });
   return totalRevenue;
 };
-

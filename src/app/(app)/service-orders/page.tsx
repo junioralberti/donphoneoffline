@@ -97,7 +97,7 @@ export default function ServiceOrdersPage() {
   }, [serviceOrdersError, toast]);
   
   const populateFormForEdit = (order: ServiceOrder) => {
-    setFormOsNumber(order.osNumber);
+    setFormOsNumber(String(order.osNumber));
     setFormOpeningDate(order.openingDate instanceof Date ? order.openingDate.toLocaleString('pt-BR') : new Date(order.openingDate as any).toLocaleString('pt-BR'));
     setDeliveryForecastDate(order.deliveryForecastDate ? format(new Date(order.deliveryForecastDate), "yyyy-MM-dd") : "");
     setStatus(order.status);
@@ -678,7 +678,7 @@ export default function ServiceOrdersPage() {
               </ScrollArea>
               <DialogFooter className="border-t pt-6 mt-6 pr-4 flex flex-col sm:flex-row justify-between items-center w-full">
                 <Button type="button" variant="outline" onClick={() => handlePrintOS({
-                    osNumber: editingServiceOrder ? editingServiceOrder.osNumber : "PREVISUALIZAÇÃO", 
+                    osNumber: editingServiceOrder ? editingServiceOrder.osNumber : 0, 
                     openingDate: editingServiceOrder ? editingServiceOrder.openingDate : new Date(),
                     clientName, deviceBrandModel, problemReportedByClient, 
                     grandTotalValue: parseFloat(grandTotalDisplay.replace(',', '.')) || 0,
@@ -966,7 +966,7 @@ export default function ServiceOrdersPage() {
               </ScrollArea>
               <DialogFooter className="border-t pt-6 mt-6 pr-4 flex flex-col sm:flex-row justify-between items-center w-full">
                 <Button type="button" variant="outline" onClick={() => handlePrintOS({
-                    osNumber: editingServiceOrder ? editingServiceOrder.osNumber : "PREVISUALIZAÇÃO", 
+                    osNumber: editingServiceOrder ? editingServiceOrder.osNumber : 0,
                     openingDate: editingServiceOrder ? editingServiceOrder.openingDate : new Date(),
                     clientName, deviceBrandModel, problemReportedByClient, 
                     grandTotalValue: parseFloat(grandTotalDisplay.replace(',', '.')) || 0,
@@ -1095,4 +1095,5 @@ export default function ServiceOrdersPage() {
     
 
     
+
 
