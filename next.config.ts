@@ -1,8 +1,8 @@
-
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: 'export', // 🔥 Isso ativa o modo Static Export (substitui o 'next export')
+
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -22,13 +23,14 @@ const nextConfig: NextConfig = {
         hostname: 'firebasestorage.googleapis.com',
         port: '',
         pathname: '/**',
-      }
+      },
     ],
   },
   experimental: {
     allowedDevOrigins: [
       'https://6000-firebase-studio-1748881505468.cluster-etsqrqvqyvd4erxx7qq32imrjk.cloudworkstations.dev',
     ],
+    instrumentationHook: false, // 🔧 Desativa o OpenTelemetry se não usar
   },
 };
 
