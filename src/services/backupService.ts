@@ -52,10 +52,16 @@ const deserializeData = (data: any): any => {
   if (Array.isArray(data)) {
     return data.map(deserializeData);
   }
-  if (typeof data === 'object' && data.__datatype__ === 'timestamp') {
+  if (typeof data === 'object' && data !== null && data.__datatype__ === 'timestamp') {
     return Timestamp.fromDate(new Date(data.value));
   }
-  if (typeof data === 'object') {
+  if (typeof data === 'object' && data !== null) {
+    // Remove o campo userId obsoleto durante a desserialização para garantir a compatibilidade
+    // com as regras de segurança e schemas atuais.
+    if ('userId' in data) {
+      delete data.userId;
+    }
+    
     const deserializedObject: { [key: string]: any } = {};
     for (const key in data) {
       deserializedObject[key] = deserializeData(data[key]);
