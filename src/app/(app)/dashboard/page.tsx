@@ -127,22 +127,20 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {dashboardNavItems.map((item) => (
-            <Link href={item.href} key={item.href} passHref legacyBehavior>
-              <a className="block hover:no-underline">
-                <Card className="hover:shadow-md hover:border-primary/50 transition-all duration-200 h-full bg-card hover:bg-card/90">
-                  <CardHeader className="flex flex-row items-center gap-3 space-y-0 p-4">
-                    <item.icon className="h-6 w-6 text-primary" />
-                    <CardTitle className="text-base font-semibold text-card-foreground">{item.title}</CardTitle>
-                  </CardHeader>
-                  {/* 
+            <Link href={item.href} key={item.href} className="block hover:no-underline">
+              <Card className="hover:shadow-md hover:border-primary/50 transition-all duration-200 h-full bg-card hover:bg-card/90">
+                <CardHeader className="flex flex-row items-center gap-3 space-y-0 p-4">
+                  <item.icon className="h-6 w-6 text-primary" />
+                  <CardTitle className="text-base font-semibold text-card-foreground">{item.title}</CardTitle>
+                </CardHeader>
+                {/* 
                   <CardContent className="p-4 pt-0">
                     <p className="text-xs text-muted-foreground">
                       {`Gerenciar ${item.title.toLowerCase()} do sistema.`}
                     </p>
                   </CardContent>
                   */}
-                </Card>
-              </a>
+              </Card>
             </Link>
           ))}
         </CardContent>
@@ -151,4 +149,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
