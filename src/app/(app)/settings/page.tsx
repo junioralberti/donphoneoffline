@@ -10,16 +10,25 @@ import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import { getEstablishmentSettings, saveEstablishmentSettings, type EstablishmentSettings } from "@/services/settingsService";
+import { exportDatabase, importDatabase } from "@/services/backupService"; // Import backup services
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building, Save, Loader2, AlertTriangle, RotateCcw, Pencil } from "lucide-react";
+import { Building, Save, Loader2, AlertTriangle, RotateCcw, Pencil, Upload, Download, DatabaseZap } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
+
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const [isEditingEstablishmentData, setIsEditingEstablishmentData] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImportAlertOpen, setIsImportAlertOpen] = useState(false);
+
 
   // Form state variables
   const [businessName, setBusinessName] = useState("");
@@ -104,6 +113,88 @@ export default function SettingsPage() {
   const handleCancelEdit = () => {
     populateFormFields(establishmentSettings);
     setIsEditingEstablishmentData(false);
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    toast({ title: "Iniciando Exportação", description: "Preparando os dados para backup. Isso pode levar alguns segundos..." });
+    try {
+      const data = await exportDatabase();
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const dateString = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
+      link.download = `backup-donphone-${dateString}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: "Exportação Concluída", description: "O arquivo de backup foi baixado." });
+    } catch (error) {
+      console.error("Backup failed:", error);
+      toast({ title: "Erro na Exportação", description: error instanceof Error ? error.message : "Ocorreu um erro desconhecido.", variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImportFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.type === "application/json") {
+        setImportFile(file);
+        setIsImportAlertOpen(true); // Open confirmation dialog
+      } else {
+        toast({ title: "Arquivo Inválido", description: "Por favor, selecione um arquivo .json válido.", variant: "destructive" });
+      }
+    }
+    // Reset file input to allow re-selection of the same file
+    e.target.value = '';
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importFile) return;
+    setIsImportAlertOpen(false);
+    setIsImporting(true);
+    toast({ title: "Iniciando Importação", description: "Restaurando os dados. Não feche esta janela." });
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const text = e.target?.result;
+          if (typeof text !== 'string') {
+            throw new Error("Falha ao ler o conteúdo do arquivo.");
+          }
+          const data = JSON.parse(text);
+          await importDatabase(data);
+          toast({ title: "Importação Concluída", description: "Os dados foram restaurados com sucesso. A página será recarregada." });
+          // Invalidate all queries to force refetch after restore
+          await queryClient.invalidateQueries();
+          // Optional: full page reload
+          setTimeout(() => window.location.reload(), 2000);
+        } catch (error) {
+          console.error("Import failed during file processing:", error);
+          toast({ title: "Erro na Importação", description: error instanceof Error ? error.message : "Ocorreu um erro desconhecido ao processar o arquivo.", variant: "destructive" });
+        } finally {
+          setIsImporting(false);
+          setImportFile(null);
+        }
+      };
+      reader.onerror = () => {
+         toast({ title: "Erro de Leitura", description: "Não foi possível ler o arquivo selecionado.", variant: "destructive" });
+         setIsImporting(false);
+         setImportFile(null);
+      };
+      reader.readAsText(importFile);
+    } catch (error) {
+      console.error("Import failed:", error);
+      toast({ title: "Erro na Importação", description: error instanceof Error ? error.message : "Ocorreu um erro desconhecido.", variant: "destructive" });
+      setIsImporting(false);
+      setImportFile(null);
+    }
   };
 
   const EstablishmentDataSkeleton = () => (
@@ -259,8 +350,73 @@ export default function SettingsPage() {
           </>
         ) : null }
       </Card>
+
+      <Separator />
+
+      <Card>
+        <CardHeader>
+           <div className="flex items-center gap-2">
+            <DatabaseZap className="h-6 w-6 text-primary" />
+            <CardTitle>Backup e Restauração</CardTitle>
+          </div>
+          <CardDescription>
+            Exporte uma cópia de segurança de todos os seus dados ou importe um backup para restaurar o sistema.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Atenção!</AlertTitle>
+            <AlertDescription>
+              A restauração de dados é uma ação destrutiva e <span className="font-semibold">substituirá todos os dados existentes no sistema</span> com os dados do arquivo de backup. Use com cautela.
+            </AlertDescription>
+          </Alert>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button onClick={handleExport} disabled={isExporting || isImporting} className="w-full sm:w-auto">
+              {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
+              Exportar Dados (Backup)
+            </Button>
+
+            <Button asChild variant="outline" className="w-full sm:w-auto relative" disabled={isExporting || isImporting}>
+                <Label>
+                    {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Upload className="mr-2 h-4 w-4" />}
+                    Importar Dados (Restaurar)
+                    <Input 
+                      type="file" 
+                      className="sr-only" 
+                      accept=".json" 
+                      onChange={handleImportFileChange}
+                      disabled={isImporting}
+                    />
+                </Label>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={isImportAlertOpen} onOpenChange={setIsImportAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Importação de Dados?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a restaurar o banco de dados com o arquivo <span className="font-bold">{importFile?.name}</span>.
+              <br/><br/>
+              <span className="font-bold text-destructive">Esta ação IRÁ APAGAR PERMANENTEMENTE todos os dados atuais</span> (clientes, produtos, vendas, OS, etc.) e substituí-los pelos dados do backup.
+              <br/><br/>
+              Tem certeza que deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setImportFile(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" 
+              onClick={handleConfirmImport}>
+              Sim, Apagar Tudo e Restaurar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
-
-    
