@@ -40,7 +40,8 @@ export default function LoginPage() {
       if (firebaseUser && firebaseUser.uid) {
         const userDataFromFirestore = await getUserById(firebaseUser.uid);
         if (userDataFromFirestore && userDataFromFirestore.role) {
-          login(userDataFromFirestore.role as 'admin' | 'user', firebaseUser);
+          // Pass the user from Firestore and the user from Auth to the login function
+          login(userDataFromFirestore, firebaseUser);
         } else {
           setError('Não foi possível determinar a função do usuário. Contate o suporte.');
           await auth.signOut(); 
@@ -61,7 +62,7 @@ export default function LoginPage() {
   };
 
   const addUserMutation = useMutation({
-    mutationFn: (formData: CreateUserFormData | User) => addUser(formData as User),
+    mutationFn: (formData: CreateUserFormData | User) => addUser(formData as CreateUserFormData),
     onSuccess: async (uid, formData) => {
       toast({
         title: "Cadastro Realizado!",

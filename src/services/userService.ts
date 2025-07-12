@@ -13,11 +13,11 @@ import {
   Timestamp,
   type DocumentData,
   type QueryDocumentSnapshot,
-  DocumentSnapshot,
+  type DocumentSnapshot,
 } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
-import type { User, UserRole } from '@/lib/schemas/user';
+import type { User, UserRole, CreateUserFormData } from '@/lib/schemas/user';
 
 const USERS_COLLECTION = 'users';
 
@@ -27,7 +27,6 @@ type StorableUserData = Omit<User, 'id' | 'password' | 'confirmPassword' | 'crea
 const userFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData> | DocumentSnapshot<DocumentData>): User => {
   const data = docSnap.data();
   if (!data) {
-    // This case should ideally not happen if docSnap.exists() is checked before calling, but it's a safeguard.
     throw new Error("Document data is empty.");
   }
   return {
@@ -40,7 +39,7 @@ const userFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData> | DocumentSnap
   };
 };
 
-export const addUser = async (userData: User): Promise<string> => {
+export const addUser = async (userData: CreateUserFormData): Promise<string> => {
   if (!userData.email || !userData.password) {
     throw new Error('E-mail e senha são obrigatórios para criar um usuário no Firebase Auth.');
   }
@@ -53,7 +52,7 @@ export const addUser = async (userData: User): Promise<string> => {
   const storableData: StorableUserData & { createdAt: any; updatedAt: any } = {
     name: userData.name,
     email: userData.email,
-    role: userData.role || 'user', // Default to 'user' if not provided
+    role: userData.role || 'user',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -62,7 +61,7 @@ export const addUser = async (userData: User): Promise<string> => {
   const userDocRef = doc(db, USERS_COLLECTION, uid);
   await setDoc(userDocRef, storableData);
 
-  return uid; // Retorna o UID do usuário criado
+  return uid;
 };
 
 export const getUsers = async (): Promise<User[]> => {

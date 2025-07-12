@@ -54,8 +54,7 @@ export default function UsersPage() {
   }, [usersError, toast]);
 
   const addUserMutation = useMutation({
-    // The mutationFn now expects CreateUserFormData or User, but addUser service expects User with password
-    mutationFn: (newUserData: CreateUserFormData | User) => addUser(newUserData as User),
+    mutationFn: (newUserData: CreateUserFormData) => addUser(newUserData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({ title: "Usuário Adicionado", description: "Novo usuário adicionado com sucesso." });
@@ -90,16 +89,13 @@ export default function UsersPage() {
     },
   });
 
-  const handleAddUser = async (data: CreateUserFormData | User) => {
-    // addUser in userService expects User type with potentially password.
-    // CreateUserFormData is compatible here since it includes password.
-    await addUserMutation.mutateAsync(data as User);
+  const handleAddUser = async (data: CreateUserFormData) => {
+    await addUserMutation.mutateAsync(data);
   };
 
-  const handleUpdateUser = async (data: User | CreateUserFormData) => {
+  const handleUpdateUser = async (data: User) => {
     if (!editingUser || !editingUser.id) return;
-    // For update, we send UserDataToUpdate. Ensure data is cast to User to access all fields if needed.
-    const { id, createdAt, updatedAt, password, confirmPassword, ...userDataToUpdate } = data as User;
+    const { id, createdAt, updatedAt, password, confirmPassword, ...userDataToUpdate } = data;
     await updateUserMutation.mutateAsync({ id: editingUser.id, data: userDataToUpdate });
   };
 
@@ -170,7 +166,7 @@ export default function UsersPage() {
               </DialogDescription>
             </DialogHeader>
             <UserForm 
-              onSubmit={handleAddUser} 
+              onSubmit={handleAddUser as any} 
               isLoading={addUserMutation.isPending}
               isEditing={false} 
             />
@@ -219,7 +215,7 @@ export default function UsersPage() {
                <DialogDescription>Atualize os dados do usuário selecionado.</DialogDescription>
             </DialogHeader>
             <UserForm 
-              onSubmit={handleUpdateUser} 
+              onSubmit={handleUpdateUser as any} 
               defaultValues={editingUser} 
               isEditing 
               isLoading={updateUserMutation.isPending}

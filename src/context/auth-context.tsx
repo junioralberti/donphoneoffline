@@ -8,55 +8,52 @@ import { onAuthStateChanged, signOut, type User as FirebaseUserType } from 'fire
 import { auth } from '@/lib/firebase';
 import { getUserById } from '@/services/userService';
 import { Loader2 } from 'lucide-react';
+import type { User } from '@/lib/schemas/user';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   firebaseUser: FirebaseUserType | null;
-  login: (role: 'admin' | 'user', actualFirebaseUser: FirebaseUserType) => void; // For real Firebase login
-  performMockLogin: (role: 'admin' | 'user') => void; // For mock login
+  firestoreUser: User | null; // Changed from user to firestoreUser
+  login: (firestoreData: User, authData: FirebaseUserType) => void;
   logout: () => void;
-  userRole: string | null;
+  userRole: User['role'] | null; // Use User['role'] for type safety
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUserType | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [firestoreUser, setFirestoreUser] = useState<User | null>(null); // State for Firestore user data
   const [loading, setLoading] = useState(true);
-  const [isAuthenticatedViaMock, setIsAuthenticatedViaMock] = useState(false); // To track mock sessions
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
-      if (user) { // Real Firebase user signed in
-        setIsAuthenticatedViaMock(false); // Clear any mock state
-        setFirebaseUser(user);
+      if (user) {
         const userDataFromFirestore = await getUserById(user.uid);
-        if (userDataFromFirestore && userDataFromFirestore.role) {
-          setUserRole(userDataFromFirestore.role);
+        if (userDataFromFirestore) {
+          setFirebaseUser(user);
+          setFirestoreUser(userDataFromFirestore);
         } else {
-          console.error("User in Auth but no role in Firestore. Logging out.");
+          console.error("User in Auth but no data in Firestore. Logging out.");
           await signOut(auth); // Will trigger this callback again with user = null
+          setFirebaseUser(null);
+          setFirestoreUser(null);
         }
-      } else { // No Firebase user signed in
-        // If we are not in a mock session, then clear user data.
-        // If we *are* in a mock session, this means Firebase signed out (or never signed in),
-        // so the mock session should persist until explicitly logged out.
-        if (!isAuthenticatedViaMock) {
-            setFirebaseUser(null);
-            setUserRole(null);
-        }
+      } else {
+        setFirebaseUser(null);
+        setFirestoreUser(null);
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [isAuthenticatedViaMock]); // Re-evaluate if mock status changes
+  }, []);
 
-  const isAuthenticated = !!firebaseUser; // True if firebaseUser is real OR a mock object
+  const isAuthenticated = !!firebaseUser && !!firestoreUser;
+  const userRole = firestoreUser?.role || null;
 
   useEffect(() => {
     if (!loading) {
@@ -68,41 +65,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, loading, pathname, router]);
 
-  // Login for REAL Firebase users (called from page.tsx after signInWithEmailAndPassword)
-  const login = (role: 'admin' | 'user', actualFirebaseUser: FirebaseUserType) => {
-    setIsAuthenticatedViaMock(false);
-    setFirebaseUser(actualFirebaseUser);
-    setUserRole(role);
-    // Navigation is handled by useEffect based on isAuthenticated
-  };
-
-  // Login for MOCKED 'teste@donphone.com' user
-  const performMockLogin = (role: 'admin' | 'user') => {
-    // Set a mock FirebaseUser object so isAuthenticated becomes true and other parts of the app
-    // that might expect firebaseUser.email etc. have something to work with.
-    setFirebaseUser({ 
-      uid: 'mock_admin_uid', 
-      email: 'teste@donphone.com', 
-      displayName: 'Admin Teste (Mocked)' 
-    } as FirebaseUserType);
-    setUserRole(role);
-    setIsAuthenticatedViaMock(true);
-    // Navigation is handled by useEffect based on isAuthenticated
+  const login = (firestoreData: User, authData: FirebaseUserType) => {
+    setFirestoreUser(firestoreData);
+    setFirebaseUser(authData);
   };
 
   const logout = async () => {
-    if (isAuthenticatedViaMock) {
-      setIsAuthenticatedViaMock(false);
-      setFirebaseUser(null); // Clear the mock user
-      setUserRole(null);
-      router.push('/');
-    } else {
-      await signOut(auth); // Triggers onAuthStateChanged, which will clear firebaseUser and userRole
-      // router.push('/'); // This is handled by the useEffect on isAuthenticated change
-    }
+    await signOut(auth);
+    setFirebaseUser(null);
+    setFirestoreUser(null);
+    router.push('/');
   };
   
-  if (loading && pathname !== '/') {
+  if (loading) {
      return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /> <p className="ml-2">Carregando autenticação...</p></div>;
   }
   
@@ -111,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, firebaseUser, login, logout, userRole, performMockLogin }}>
+    <AuthContext.Provider value={{ isAuthenticated, firebaseUser, firestoreUser, login, logout, userRole }}>
       {children}
     </AuthContext.Provider>
   );
