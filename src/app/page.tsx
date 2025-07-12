@@ -32,9 +32,11 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setIsLoggingIn(true);
+    
+    const loginEmail = email.toLowerCase().trim();
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
       const firebaseUser = userCredential.user;
 
       if (firebaseUser && firebaseUser.uid) {
@@ -43,7 +45,7 @@ export default function LoginPage() {
           // Pass the user from Firestore and the user from Auth to the login function
           login(userDataFromFirestore, firebaseUser);
         } else {
-          setError('Não foi possível determinar a função do usuário. Contate o suporte.');
+          setError('Não foi possível carregar os dados do usuário. Contate o suporte.');
           await auth.signOut(); 
         }
       } else {
@@ -52,9 +54,9 @@ export default function LoginPage() {
     } catch (firebaseError: any) {
       console.error("Firebase Login Error:", firebaseError);
       if (firebaseError.code === 'auth/user-not-found' || firebaseError.code === 'auth/wrong-password' || firebaseError.code === 'auth/invalid-credential' || firebaseError.code === 'auth/invalid-email') {
-        setError('E-mail ou senha inválidos.');
+        setError('E-mail ou senha inválidos. Por favor, verifique suas credenciais e tente novamente.');
       } else {
-        setError('Ocorreu um erro ao tentar fazer login. Tente novamente.');
+        setError('Ocorreu um erro ao tentar fazer login. Tente novamente mais tarde.');
       }
     } finally {
       setIsLoggingIn(false);

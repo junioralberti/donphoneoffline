@@ -40,18 +40,21 @@ const userFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData> | DocumentSnap
 };
 
 export const addUser = async (userData: CreateUserFormData): Promise<string> => {
-  if (!userData.email || !userData.password) {
+  const email = userData.email?.toLowerCase().trim();
+  const password = userData.password;
+
+  if (!email || !password) {
     throw new Error('E-mail e senha são obrigatórios para criar um usuário no Firebase Auth.');
   }
 
   // 1. Criar usuário no Firebase Authentication
-  const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const uid = userCredential.user.uid;
 
   // 2. Preparar dados para salvar no Firestore (sem senha)
   const storableData: StorableUserData & { createdAt: any; updatedAt: any } = {
     name: userData.name,
-    email: userData.email,
+    email: email, // Use the sanitized email
     role: userData.role || 'user',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -82,11 +85,18 @@ export const getUserById = async (userId: string): Promise<User | null> => {
 
 export const updateUser = async (id: string, userData: Partial<StorableUserData>): Promise<void> => {
   const userRef = doc(db, USERS_COLLECTION, id);
+  // Sanitize email just in case it's part of the update, although it's disabled in the form.
+  const dataToUpdate = { ...userData };
+  if (dataToUpdate.email) {
+    dataToUpdate.email = dataToUpdate.email.toLowerCase().trim();
+  }
+
   await updateDoc(userRef, {
-    ...userData,
+    ...dataToUpdate,
     updatedAt: serverTimestamp(),
   });
 };
+
 
 export const deleteUser = async (id: string): Promise<void> => {
   const userRef = doc(db, USERS_COLLECTION, id);
