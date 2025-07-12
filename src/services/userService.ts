@@ -13,6 +13,7 @@ import {
   Timestamp,
   type DocumentData,
   type QueryDocumentSnapshot,
+  DocumentSnapshot,
 } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
@@ -23,8 +24,12 @@ const USERS_COLLECTION = 'users';
 // Tipo para dados que realmente serão salvos no Firestore (sem senhas).
 type StorableUserData = Omit<User, 'id' | 'password' | 'confirmPassword' | 'createdAt' | 'updatedAt'>;
 
-const userFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData> | DocumentData): User => {
-  const data = docSnap.data ? docSnap.data() : docSnap; // Handle both snapshot and direct data
+const userFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData> | DocumentSnapshot<DocumentData>): User => {
+  const data = docSnap.data();
+  if (!data) {
+    // This case should ideally not happen if docSnap.exists() is checked before calling, but it's a safeguard.
+    throw new Error("Document data is empty.");
+  }
   return {
     id: docSnap.id,
     name: data.name || '',
@@ -71,8 +76,7 @@ export const getUserById = async (userId: string): Promise<User | null> => {
   const userDocRef = doc(db, USERS_COLLECTION, userId);
   const docSnap = await getDoc(userDocRef);
   if (docSnap.exists()) {
-    // Pass docSnap (QueryDocumentSnapshot-like) instead of docSnap.data() to userFromDoc
-    return userFromDoc(docSnap as QueryDocumentSnapshot<DocumentData>);
+    return userFromDoc(docSnap);
   }
   return null;
 };
