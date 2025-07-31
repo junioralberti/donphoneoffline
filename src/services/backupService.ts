@@ -95,16 +95,19 @@ export async function exportDatabase(): Promise<Record<string, any>> {
 
 
 export async function importDatabase(data: Record<string, any>): Promise<void> {
-  // Validate that the data looks like a backup file
   const collectionsInData = Object.keys(data);
   if (collectionsInData.length === 0 || !COLLECTIONS_TO_BACKUP.some(c => collectionsInData.includes(c))) {
       throw new Error("O arquivo de backup parece estar vazio ou em um formato inválido.");
   }
 
-  console.log("Starting database import. This will delete existing data.");
+  console.log("Starting database import. This will delete existing data from collections present in the backup file.");
 
-  // 1. Delete all documents in existing collections
-  for (const collectionName of COLLECTIONS_TO_BACKUP) {
+  // 1. Delete all documents in existing collections that are also in the backup file
+  for (const collectionName of collectionsInData) {
+    if (!COLLECTIONS_TO_BACKUP.includes(collectionName)) {
+        console.warn(`Skipping unknown collection "${collectionName}" from backup file.`);
+        continue;
+    }
     try {
       const collectionRef = collection(db, collectionName);
       const snapshot = await getDocs(collectionRef);
@@ -125,8 +128,7 @@ export async function importDatabase(data: Record<string, any>): Promise<void> {
   // 2. Import new data
   for (const collectionName of collectionsInData) {
     if (!COLLECTIONS_TO_BACKUP.includes(collectionName)) {
-        console.warn(`Skipping unknown collection "${collectionName}" from backup file.`);
-        continue;
+        continue; // Already warned above
     }
     const collectionData = data[collectionName];
     if (typeof collectionData !== 'object' || collectionData === null) continue;
@@ -137,7 +139,6 @@ export async function importDatabase(data: Record<string, any>): Promise<void> {
       for (const docId in collectionData) {
         const docData = collectionData[docId];
         const docRef = doc(db, collectionName, docId);
-        // Deserialize Timestamps before writing
         const deserializedDocData = deserializeData(docData);
         writeBatch.set(docRef, deserializedDocData);
         count++;

@@ -21,7 +21,7 @@ import type { User, UserRole, CreateUserFormData } from '@/lib/schemas/user';
 
 const USERS_COLLECTION = 'users';
 
-// Tipo para dados que realmente serão salvos no Firestore (sem senhas).
+// Type for data that will actually be stored in Firestore (without passwords).
 type StorableUserData = Omit<User, 'id' | 'password' | 'confirmPassword' | 'createdAt' | 'updatedAt'>;
 
 const userFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData> | DocumentSnapshot<DocumentData>): User => {
@@ -34,8 +34,8 @@ const userFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData> | DocumentSnap
     name: data.name || '',
     email: data.email || '',
     role: data.role || 'user',
-    createdAt: (data.createdAt as Timestamp)?.toDate(),
-    updatedAt: (data.updatedAt as Timestamp)?.toDate(),
+    createdAt: (data.createdAt instanceof Timestamp) ? data.createdAt.toDate() : (data.createdAt ? String(data.createdAt) : new Date()),
+    updatedAt: (data.updatedAt instanceof Timestamp) ? data.updatedAt.toDate() : (data.updatedAt ? String(data.updatedAt) : new Date()),
   };
 };
 
@@ -47,11 +47,11 @@ export const addUser = async (userData: CreateUserFormData): Promise<string> => 
     throw new Error('E-mail e senha são obrigatórios para criar um usuário no Firebase Auth.');
   }
 
-  // 1. Criar usuário no Firebase Authentication
+  // 1. Create user in Firebase Authentication
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const uid = userCredential.user.uid;
 
-  // 2. Preparar dados para salvar no Firestore (sem senha)
+  // 2. Prepare data to save in Firestore (without password)
   const storableData: StorableUserData & { createdAt: any; updatedAt: any } = {
     name: userData.name,
     email: email, // Use the sanitized email
@@ -60,7 +60,7 @@ export const addUser = async (userData: CreateUserFormData): Promise<string> => 
     updatedAt: serverTimestamp(),
   };
 
-  // 3. Salvar dados do usuário no Firestore usando o UID do Auth como ID do documento
+  // 3. Save user data in Firestore using the Auth UID as the document ID
   const userDocRef = doc(db, USERS_COLLECTION, uid);
   await setDoc(userDocRef, storableData);
 
@@ -100,8 +100,8 @@ export const updateUser = async (id: string, userData: Partial<StorableUserData>
 
 export const deleteUser = async (id: string): Promise<void> => {
   const userRef = doc(db, USERS_COLLECTION, id);
-  // Nota: Excluir um usuário aqui APENAS remove o registro do Firestore.
-  // A exclusão do Firebase Authentication deve ser tratada separadamente se necessário.
-  // Para este sistema, a conta Auth permanece, mas o usuário não terá 'role' e não poderá logar com sucesso na lógica atual.
+  // Note: Deleting a user here ONLY removes the Firestore record.
+  // The Firebase Authentication deletion must be handled separately if needed.
+  // For this system, the Auth account remains, but the user will have no 'role' and will not be able to log in successfully with the current logic.
   await deleteDoc(userRef);
 };
