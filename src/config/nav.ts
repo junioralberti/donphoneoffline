@@ -9,11 +9,8 @@ import {
   Wrench,
   ShoppingCart,
   BarChart3,
-  BrainCircuit, // Or Sparkles
-  LogOut,
-  Settings,
-  Landmark, // Added for Financeiro
-  // Calculator icon is kept for the header, but not for a nav item itself
+  BrainCircuit,
+  Landmark,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -23,10 +20,11 @@ export interface NavItem {
   label?: string;
   disabled?: boolean;
   external?: boolean;
-  role?: 'admin' | 'user'; // Optional role for visibility
-  isBottom?: boolean; // To position items like Logout and Settings at the bottom
+  role?: 'admin' | 'user'; 
+  isBottom?: boolean; 
 }
 
+// All links now point to /dashboard, as it is the main view container.
 export const navItems: NavItem[] = [
   {
     title: 'Painel',
@@ -34,57 +32,50 @@ export const navItems: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
-    title: 'Financeiro', // New Finance Section
-    href: '/financeiro',
+    title: 'Financeiro',
+    href: '/dashboard',
     icon: Landmark,
   },
   {
     title: 'Clientes',
-    href: '/clients',
+    href: '/dashboard',
     icon: Users,
   },
   {
     title: 'Produtos',
-    href: '/products',
+    href: '/dashboard',
     icon: Package,
   },
   {
     title: 'Fornecedores',
-    href: '/providers',
+    href: '/dashboard',
     icon: Truck,
   },
   {
     title: 'Usuários',
-    href: '/users',
+    href: '/dashboard',
     icon: UserCog,
-    role: 'admin', // Only visible to admins
+    role: 'admin',
   },
   {
     title: 'Ordens de Serviço',
-    href: '/service-orders',
+    href: '/dashboard',
     icon: Wrench,
   },
   {
     title: 'Vendas no Balcão',
-    href: '/counter-sales',
+    href: '/dashboard',
     icon: ShoppingCart,
   },
   {
     title: 'Relatórios',
-    href: '/reports',
+    href: '/dashboard',
     icon: BarChart3,
   },
   {
     title: 'Diagnóstico IA',
-    href: '/ai-diagnostics',
+    href: '/dashboard',
     icon: BrainCircuit,
   },
-  // Items to be placed at the bottom
-  {
-    title: 'Configurações',
-    href: '/settings',
-    icon: Settings,
-    isBottom: true,
-  },
+  // Settings is no longer a main nav item, moved to user dropdown
 ];
-

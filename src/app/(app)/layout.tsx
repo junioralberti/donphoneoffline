@@ -3,8 +3,7 @@
 
 import type React from 'react';
 import { useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { navItems, type NavItem } from '@/config/nav';
 import {
@@ -18,20 +17,17 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarInset,
-  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, ChevronDown, Calculator, Mail } from 'lucide-react';
-import Image from 'next/image';
+import { LogOut, ChevronDown, Calculator, Mail, Settings } from 'lucide-react';
 import { CalculatorComponent } from '@/components/calculator/calculator-component';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, logout, userRole } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
 
@@ -51,9 +47,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider defaultOpen>
       <Sidebar className="bg-sidebar-background text-sidebar-foreground border-r border-sidebar-border">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
-          <Link href="/dashboard" className="flex items-center gap-2 text-xl font-semibold text-sidebar-foreground">
+          <button onClick={() => window.location.href = '/dashboard'} className="flex items-center gap-2 text-xl font-semibold text-sidebar-foreground">
             <span className="font-headline">DonPhone</span>
-          </Link>
+          </button>
         </SidebarHeader>
         <SidebarContent className="flex-grow p-2">
           <SidebarMenu>
@@ -61,14 +57,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
                   asChild
-                  isActive={pathname.startsWith(item.href)}
+                  isActive={item.href === '/dashboard'}
                   tooltip={{ children: item.title, className: "text-xs" }}
                   className="data-[active=true]:text-sidebar-primary data-[active=true]:bg-sidebar-accent hover:text-sidebar-primary hover:bg-sidebar-accent"
                 >
-                  <Link href={item.href}>
+                  <button onClick={() => window.location.href = item.href}>
                     <item.icon />
                     <span>{item.title}</span>
-                  </Link>
+                  </button>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -76,21 +72,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarContent>
         <SidebarFooter className="p-2 border-t border-sidebar-border">
            <SidebarMenu>
-            {bottomNavItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname.startsWith(item.href)}
-                  tooltip={{ children: item.title, className: "text-xs" }}
-                  className="data-[active=true]:text-sidebar-primary data-[active=true]:bg-sidebar-accent hover:text-sidebar-primary hover:bg-sidebar-accent"
-                >
-                  <Link href={item.href}>
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            {/* Settings is now in dropdown, so removed from here to avoid duplication */}
             <SidebarMenuItem>
               <SidebarMenuButton onClick={logout} tooltip={{ children: "Sair", className: "text-xs" }} className="hover:text-sidebar-primary hover:bg-sidebar-accent">
                 <LogOut />
@@ -124,10 +106,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/settings')}>Configurações</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsSupportDialogOpen(true)}>Suporte</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/dashboard?view=settings')}>
+                    <Settings className="mr-2 h-4 w-4"/>
+                    <span>Configurações</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsSupportDialogOpen(true)}>
+                    <Mail className="mr-2 h-4 w-4"/>
+                    <span>Suporte</span>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>Sair</DropdownMenuItem>
+                <DropdownMenuItem onClick={logout}>
+                    <LogOut className="mr-2 h-4 w-4"/>
+                    <span>Sair</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
            </div>
@@ -184,7 +175,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </SidebarProvider>
   );
 }

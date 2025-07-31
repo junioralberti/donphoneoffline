@@ -1,10 +1,9 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from 'next/link';
+import { useState, useEffect, type ReactNode } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, CreditCard, DollarSign, Users, Package, Wrench, ShoppingCart, BarChart3, BrainCircuit, Landmark, UserCog } from "lucide-react";
+import { Activity, CreditCard, DollarSign, Users, Package, Wrench, ShoppingCart, BarChart3, BrainCircuit, Landmark, UserCog, ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { getTotalSalesRevenue } from "@/services/salesService";
@@ -13,11 +12,39 @@ import { getClients } from "@/services/clientService";
 import type { Client } from "@/lib/schemas/client";
 import { navItems, type NavItem } from '@/config/nav';
 import { useAuth } from '@/context/auth-context';
+import { Button } from "@/components/ui/button";
+
+// Import page components to be rendered within the dashboard
+import ClientsPage from '../clients/page';
+import FinanceiroPage from '../financeiro/page';
+import ProductsPage from '../products/page';
+import ProvidersPage from '../providers/page';
+import UsersPage from '../users/page';
+import ServiceOrdersPage from '../service-orders/page';
+import CounterSalesPage from '../counter-sales/page';
+import ReportsPage from '../reports/page';
+import AiDiagnosticsPage from '../ai-diagnostics/page';
+import SettingsPage from "../settings/page";
+
+
+type View = 
+  | 'main' 
+  | 'financeiro' 
+  | 'clients' 
+  | 'products' 
+  | 'providers' 
+  | 'users' 
+  | 'service-orders' 
+  | 'counter-sales' 
+  | 'reports' 
+  | 'ai-diagnostics'
+  | 'settings';
 
 
 export default function DashboardPage() {
   const { userRole } = useAuth();
   const [isSettingUpDashboard, setIsSettingUpDashboard] = useState(true);
+  const [currentView, setCurrentView] = useState<View>('main');
 
   const { data: totalSalesRevenue, isLoading: isLoadingSalesRevenue, error: salesRevenueError } = useQuery<number, Error>({
     queryKey: ["totalSalesRevenue"],
@@ -62,12 +89,49 @@ export default function DashboardPage() {
      return <p className="text-xs text-muted-foreground">{defaultText}</p>;
   };
 
-  // Filter navItems for dashboard display (exclude settings, logout, users for non-admin)
   const dashboardNavItems = navItems.filter(item => 
     !item.isBottom && 
-    item.href !== '/dashboard' && // Don't link to dashboard from dashboard
+    item.href !== '/dashboard' && 
     (item.role ? item.role === userRole : true)
   );
+
+  const viewMap: Record<View, ReactNode> = {
+    'main': null, // Handled separately
+    'financeiro': <FinanceiroPage />,
+    'clients': <ClientsPage />,
+    'products': <ProductsPage />,
+    'providers': <ProvidersPage />,
+    'users': <UsersPage />,
+    'service-orders': <ServiceOrdersPage />,
+    'counter-sales': <CounterSalesPage />,
+    'reports': <ReportsPage />,
+    'ai-diagnostics': <AiDiagnosticsPage />,
+    'settings': <SettingsPage />,
+  };
+  const navItemMap: Record<string, View> = {
+    '/financeiro': 'financeiro',
+    '/clients': 'clients',
+    '/products': 'products',
+    '/providers': 'providers',
+    '/users': 'users',
+    '/service-orders': 'service-orders',
+    '/counter-sales': 'counter-sales',
+    '/reports': 'reports',
+    '/ai-diagnostics': 'ai-diagnostics',
+    '/settings': 'settings'
+  };
+
+  if (currentView !== 'main') {
+    return (
+        <div className="flex flex-col gap-4">
+            <Button variant="outline" onClick={() => setCurrentView('main')} className="w-fit">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar ao Painel
+            </Button>
+            {viewMap[currentView]}
+        </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -126,26 +190,23 @@ export default function DashboardPage() {
           <CardDescription className="text-muted-foreground">Navegue rapidamente para as seções principais do sistema.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {dashboardNavItems.map((item) => (
-            <Link href={item.href} key={item.href} className="block hover:no-underline">
-              <Card className="hover:shadow-md hover:border-primary/50 transition-all duration-200 h-full bg-card hover:bg-card/90">
+          {dashboardNavItems.map((item) => {
+            const viewKey = navItemMap[item.href];
+            return (
+              <Card 
+                key={item.href} 
+                onClick={() => viewKey && setCurrentView(viewKey)}
+                className="hover:shadow-md hover:border-primary/50 transition-all duration-200 h-full bg-card hover:bg-card/90 cursor-pointer"
+              >
                 <CardHeader className="flex flex-row items-center gap-3 space-y-0 p-4">
                   <item.icon className="h-6 w-6 text-primary" />
                   <CardTitle className="text-base font-semibold text-card-foreground">{item.title}</CardTitle>
                 </CardHeader>
-                {/* 
-                  <CardContent className="p-4 pt-0">
-                    <p className="text-xs text-muted-foreground">
-                      {`Gerenciar ${item.title.toLowerCase()} do sistema.`}
-                    </p>
-                  </CardContent>
-                  */}
               </Card>
-            </Link>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
-
     </div>
   );
 }
