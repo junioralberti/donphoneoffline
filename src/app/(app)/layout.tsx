@@ -3,7 +3,7 @@
 
 import type React from 'react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { navItems, type NavItem } from '@/config/nav';
 import {
@@ -24,10 +24,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LogOut, ChevronDown, Calculator, Mail, Settings } from 'lucide-react';
 import { CalculatorComponent } from '@/components/calculator/calculator-component';
+import Link from 'next/link';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, logout, userRole } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
 
@@ -47,9 +49,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider defaultOpen>
       <Sidebar className="bg-sidebar-background text-sidebar-foreground border-r border-sidebar-border">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
-          <button onClick={() => window.location.href = '/dashboard'} className="flex items-center gap-2 text-xl font-semibold text-sidebar-foreground">
+          <Link href="/dashboard" className="flex items-center gap-2 text-xl font-semibold text-sidebar-foreground">
             <span className="font-headline">DonPhone</span>
-          </button>
+          </Link>
         </SidebarHeader>
         <SidebarContent className="flex-grow p-2">
           <SidebarMenu>
@@ -57,14 +59,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
                   asChild
-                  isActive={item.href === '/dashboard'}
+                  isActive={pathname === item.href}
                   tooltip={{ children: item.title, className: "text-xs" }}
                   className="data-[active=true]:text-sidebar-primary data-[active=true]:bg-sidebar-accent hover:text-sidebar-primary hover:bg-sidebar-accent"
                 >
-                  <button onClick={() => window.location.href = item.href}>
+                  <Link href={item.href}>
                     <item.icon />
                     <span>{item.title}</span>
-                  </button>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -72,7 +74,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarContent>
         <SidebarFooter className="p-2 border-t border-sidebar-border">
            <SidebarMenu>
-            {/* Settings is now in dropdown, so removed from here to avoid duplication */}
             <SidebarMenuItem>
               <SidebarMenuButton onClick={logout} tooltip={{ children: "Sair", className: "text-xs" }} className="hover:text-sidebar-primary hover:bg-sidebar-accent">
                 <LogOut />
@@ -106,7 +107,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/dashboard?view=settings')}>
+                <DropdownMenuItem onClick={() => router.push('/settings')}>
                     <Settings className="mr-2 h-4 w-4"/>
                     <span>Configurações</span>
                 </DropdownMenuItem>
@@ -130,7 +131,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       
       <Dialog open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
         <DialogContent className="p-0 max-w-xs border-none bg-transparent shadow-none">
-          {/* DialogHeader and DialogTitle are removed to make it more like a floating widget */}
           <CalculatorComponent />
         </DialogContent>
       </Dialog>
@@ -154,7 +154,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </a>
             </div>
             <div className="flex items-center gap-2">
-              {/* Simple SVG for WhatsApp icon */}
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path><path d="M19.07 4.93A10 10 0 1 1 4.93 19.07"></path></svg>
               <a
                 href="https://wa.me/5549991287685"

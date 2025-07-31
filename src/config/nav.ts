@@ -11,6 +11,7 @@ import {
   BarChart3,
   BrainCircuit,
   Landmark,
+  Settings,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -24,7 +25,6 @@ export interface NavItem {
   isBottom?: boolean; 
 }
 
-// All links now point to /dashboard, as it is the main view container.
 export const navItems: NavItem[] = [
   {
     title: 'Painel',
@@ -33,49 +33,54 @@ export const navItems: NavItem[] = [
   },
   {
     title: 'Financeiro',
-    href: '/dashboard',
+    href: '/expenses',
     icon: Landmark,
   },
   {
     title: 'Clientes',
-    href: '/dashboard',
+    href: '/clients',
     icon: Users,
   },
   {
     title: 'Produtos',
-    href: '/dashboard',
+    href: '/products',
     icon: Package,
   },
   {
     title: 'Fornecedores',
-    href: '/dashboard',
+    href: '/providers',
     icon: Truck,
   },
   {
     title: 'Usuários',
-    href: '/dashboard',
+    href: '/users',
     icon: UserCog,
     role: 'admin',
   },
   {
     title: 'Ordens de Serviço',
-    href: '/dashboard',
+    href: '/service-orders',
     icon: Wrench,
   },
   {
     title: 'Vendas no Balcão',
-    href: '/dashboard',
+    href: '/counter-sales',
     icon: ShoppingCart,
   },
   {
     title: 'Relatórios',
-    href: '/dashboard',
+    href: '/reports',
     icon: BarChart3,
   },
   {
     title: 'Diagnóstico IA',
-    href: '/dashboard',
+    href: '/ai-diagnostics',
     icon: BrainCircuit,
   },
-  // Settings is no longer a main nav item, moved to user dropdown
+  {
+    title: 'Configurações',
+    href: '/settings',
+    icon: Settings,
+    isBottom: true,
+  },
 ];
