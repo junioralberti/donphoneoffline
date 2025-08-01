@@ -12,6 +12,7 @@ import {
   BrainCircuit,
   Landmark,
   Settings,
+  Calculator, // Adicionando Calculadora
 } from 'lucide-react';
 
 export interface NavItem {
@@ -51,13 +52,7 @@ export const navItems: NavItem[] = [
     href: '/providers',
     icon: Truck,
   },
-  {
-    title: 'Usuários',
-    href: '/users',
-    icon: UserCog,
-    role: 'admin',
-  },
-  {
+   {
     title: 'Ordens de Serviço',
     href: '/service-orders',
     icon: Wrench,
@@ -76,6 +71,17 @@ export const navItems: NavItem[] = [
     title: 'Diagnóstico IA',
     href: '/ai-diagnostics',
     icon: BrainCircuit,
+  },
+  {
+    title: 'Calculadora',
+    href: '/calculadora',
+    icon: Calculator,
+  },
+  {
+    title: 'Usuários',
+    href: '/users',
+    icon: UserCog,
+    role: 'admin',
   },
   {
     title: 'Configurações',
