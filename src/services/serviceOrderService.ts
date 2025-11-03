@@ -17,47 +17,53 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { generateNextOsNumber } from './counterService';
+import { z } from 'zod';
 
-export type ServiceOrderStatus = "Aberta" | "Em andamento" | "Aguardando peça" | "Concluída" | "Entregue" | "Cancelada";
-export type DeviceType = "Celular" | "Notebook" | "Tablet" | "Placa" | "Outro";
+export const ServiceOrderStatusSchema = z.enum(["Aberta", "Em andamento", "Aguardando peça", "Concluída", "Entregue", "Cancelada"]);
+export type ServiceOrderStatus = z.infer<typeof ServiceOrderStatusSchema>;
 
-export interface SoldProductItemInput {
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-}
+export const DeviceTypeSchema = z.enum(["Celular", "Notebook", "Tablet", "Placa", "Outro"]);
+export type DeviceType = z.infer<typeof DeviceTypeSchema>;
 
-export interface ServiceOrderInput {
-  deliveryForecastDate: string | null;
-  status: ServiceOrderStatus;
-  responsibleTechnicianName: string | null;
-  clientName: string;
-  clientCpfCnpj: string | null;
-  clientPhone: string | null;
-  clientEmail: string | null;
-  deviceType: DeviceType | null;
-  deviceBrandModel: string;
-  deviceImeiSerial: string | null;
-  deviceColor: string | null;
-  deviceAccessories: string | null;
-  problemReportedByClient: string;
-  technicalDiagnosis: string | null;
-  internalObservations: string | null;
-  servicesPerformedDescription: string | null;
-  partsUsedDescription: string | null;
-  serviceManualValue: number;
-  additionalSoldProducts: SoldProductItemInput[];
-  grandTotalValue: number;
-  // userId removed
-}
+export const SoldProductItemInputSchema = z.object({
+  name: z.string(),
+  quantity: z.number().min(1),
+  unitPrice: z.number(),
+  totalPrice: z.number(),
+});
+export type SoldProductItemInput = z.infer<typeof SoldProductItemInputSchema>;
+
+
+export const ServiceOrderInputSchema = z.object({
+  deliveryForecastDate: z.string().nullable(),
+  status: ServiceOrderStatusSchema,
+  responsibleTechnicianName: z.string().nullable(),
+  clientName: z.string().min(1, "Nome do cliente é obrigatório"),
+  clientCpfCnpj: z.string().nullable(),
+  clientPhone: z.string().nullable(),
+  clientEmail: z.string().email().nullable().or(z.literal('')),
+  deviceType: DeviceTypeSchema.nullable(),
+  deviceBrandModel: z.string().min(1, "Marca/Modelo é obrigatório"),
+  deviceImeiSerial: z.string().nullable(),
+  deviceColor: z.string().nullable(),
+  deviceAccessories: z.string().nullable(),
+  problemReportedByClient: z.string().min(1, "O relato do problema é obrigatório"),
+  technicalDiagnosis: z.string().nullable(),
+  internalObservations: z.string().nullable(),
+  servicesPerformedDescription: z.string().nullable(),
+  partsUsedDescription: z.string().nullable(),
+  serviceManualValue: z.number().nonnegative(),
+  additionalSoldProducts: z.array(SoldProductItemInputSchema),
+  grandTotalValue: z.number().nonnegative(),
+});
+
+export type ServiceOrderInput = z.infer<typeof ServiceOrderInputSchema>;
 
 export interface ServiceOrder extends ServiceOrderInput {
   id: string; // Firestore ID
   osNumber: number;
   openingDate: Date | Timestamp;
   updatedAt?: Date | Timestamp;
-  // userId removed
 }
 
 const SERVICE_ORDERS_COLLECTION = 'serviceOrders';
@@ -89,7 +95,6 @@ const serviceOrderFromDoc = (docSnap: QueryDocumentSnapshot<DocumentData>): Serv
     grandTotalValue: data.grandTotalValue || 0,
     openingDate: (data.openingDate instanceof Timestamp) ? data.openingDate.toDate() : (data.openingDate || new Date()),
     updatedAt: (data.updatedAt instanceof Timestamp) ? data.updatedAt.toDate() : data.updatedAt,
-    // userId: data.userId || '', // userId removed
   };
 };
 
@@ -100,7 +105,6 @@ export const addServiceOrder = async (orderData: ServiceOrderInput): Promise<num
   const osNumber = await generateNextOsNumber();
   const docRef = await addDoc(collection(db, SERVICE_ORDERS_COLLECTION), {
     ...orderData,
-    // userId: currentUser.uid, // userId removed
     osNumber: osNumber,
     openingDate: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -114,14 +118,13 @@ export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
 
   const q = query(
     collection(db, SERVICE_ORDERS_COLLECTION),
-    // where('userId', '==', currentUser.uid), // userId removed
     orderBy('osNumber', 'desc')
   );
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(serviceOrderFromDoc);
 };
 
-export const updateServiceOrder = async (id: string, orderData: Partial<Omit<ServiceOrder, 'id' | 'osNumber' | 'openingDate' | 'userId'>>): Promise<void> => {
+export const updateServiceOrder = async (id: string, orderData: Partial<Omit<ServiceOrder, 'id' | 'osNumber' | 'openingDate'>>): Promise<void> => {
   const orderRef = doc(db, SERVICE_ORDERS_COLLECTION, id);
   await updateDoc(orderRef, {
     ...orderData,
@@ -143,9 +146,7 @@ export const getServiceOrdersByDateRangeAndStatus = async (
   const currentUser = auth.currentUser;
   if (!currentUser) return [];
 
-  let conditions: any[] = [
-    // where('userId', '==', currentUser.uid) // userId removed
-  ];
+  let conditions: any[] = [];
   if (startDate) {
     conditions.push(where('openingDate', '>=', Timestamp.fromDate(startDate)));
   }
@@ -173,7 +174,6 @@ export const getCountOfOpenServiceOrders = async (): Promise<number> => {
   const openStatuses: ServiceOrderStatus[] = ["Aberta", "Em andamento", "Aguardando peça"];
   const q = query(
     collection(db, SERVICE_ORDERS_COLLECTION),
-    // where('userId', '==', currentUser.uid), // userId removed
     where('status', 'in', openStatuses)
   );
   const snapshot = await getCountFromServer(q);
@@ -186,7 +186,6 @@ export const getTotalCompletedServiceOrdersRevenue = async (): Promise<number> =
 
   const q = query(
     collection(db, SERVICE_ORDERS_COLLECTION),
-    // where('userId', '==', currentUser.uid), // userId removed
     where('status', 'in', ['Concluída', 'Entregue'])
   );
   const querySnapshot = await getDocs(q);
@@ -196,3 +195,5 @@ export const getTotalCompletedServiceOrdersRevenue = async (): Promise<number> =
   });
   return totalRevenue;
 };
+
+    
